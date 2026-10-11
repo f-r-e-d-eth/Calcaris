@@ -37,10 +37,10 @@ small {color:#9bb3c8}
 <p class="subtitle">Engineering calculations · one expression per line</p>
 <textarea id="input" spellcheck="false" aria-label="Calculations" placeholder="12[t roll] x 10[kN/t] / 2[sides] = 60&#10;sin(30°) x 100 = 50&#10;= 400 + 1 = 401"></textarea>
 <div class="panel">
-<div class="toolbar"><strong>Results</strong><button id="copy" type="button">Copy results</button></div>
+<div class="toolbar"><strong>Results</strong><button id="copy" type="button">Copy updated block</button></div>
 <div id="results" aria-live="polite"></div>
 </div>
-<p><small>Supports + − x * / ^ ( ), sin, cos, tan, sqrt, abs, pi and °. Notes in [brackets] are ignored. Text after = is treated as an old result.</small></p>
+<p><small>Supports + − x * / ^ ( ), sin, cos, tan, sqrt, abs, pi and °. Notes in [brackets] are ignored. Old results after = are replaced when copying the complete block. Decimal commas and spaces in numbers are supported.</small></p>
 </main>
 <script src="calculator.js"></script>
 </body>
