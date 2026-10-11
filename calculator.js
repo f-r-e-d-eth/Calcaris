@@ -10,7 +10,8 @@ function calculateLine(source) {
     s = s.slice(0, equals).trim();
   }
   if (!s) throw Error("Missing expression");
-  s = s.replace(/[×xX]/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+  s = s.replace(/(\d)[ \u00a0\u202f]+(?=\d)/g, "$1");
+  s = s.replace(/,/g, ".").replace(/[×xX]/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
   const tokens = s.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[a-zA-Z]+|[+*/^()°-]/g) || [];
   if (tokens.join("") !== s.replace(/\s+/g, "")) throw Error("Unsupported character");
   let i = 0;
@@ -76,19 +77,35 @@ function calculateLine(source) {
   if (!Number.isFinite(value)) throw Error("Non-finite result");
   return Number(value.toPrecision(12)).toString();
 }
-if (typeof module !== "undefined") module.exports = {calculateLine};
+
+function updateLine(source) {
+  if (!source.trim()) return { text: source, result: null };
+  const result = calculateLine(source);
+  if (result === null) return { text: source, result: null };
+  let separator = source.indexOf("=");
+  if (separator !== -1 && !source.slice(0, separator).trim())
+    separator = source.indexOf("=", separator + 1);
+  const expression = source.slice(0, separator < 0 ? source.length : separator).replace(/\[[^\]]*\]/g, "");
+  const formatted = expression.includes(",") ? result.replace(".", ",") : result;
+  if (separator < 0) return { text: source + " = " + formatted, result };
+  const tail = source.slice(separator + 1);
+  const old = tail.match(/^(\s*)([+-]?(?:(?:\d[\d \u00a0\u202f]*(?:[.,]\d+)?|[.,]\d+)(?:[eE][+-]?\d+)?))/);
+  if (!old) throw Error("Old result must start with a number");
+  return { text: source.slice(0, separator + 1) + old[1] + formatted + tail.slice(old[0].length), result };
+}
+if (typeof module !== "undefined") module.exports = {calculateLine, updateLine};
 if (typeof document !== "undefined") {
   const input = document.getElementById("input");
   const output = document.getElementById("results");
   let copyText = "";
   function update() {
     output.replaceChildren();
-    const values = [];
+    const updated = [];
     for (const source of input.value.split(/\r?\n/)) {
       let result;
-      try { result = calculateLine(source); } catch (e) { result = "Error: " + e.message; }
-      if (result === null) { values.push(""); continue; }
-      values.push(result.startsWith("Error:") ? "" : result);
+      try { const line = updateLine(source); result = line.result; updated.push(line.text); }
+      catch (e) { result = "Error: " + e.message; updated.push(source); }
+      if (result === null) continue;
       const row = document.createElement("div");
       row.className = "line";
       const expr = document.createElement("span");
@@ -100,7 +117,7 @@ if (typeof document !== "undefined") {
       row.append(expr, answer);
       output.append(row);
     }
-    copyText = values.join("\n");
+    copyText = updated.join("\n");
   }
   input.addEventListener("input", update);
   document.getElementById("copy").addEventListener("click", async () => {
